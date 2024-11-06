@@ -1,0 +1,156 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject CartService _cartService
+@inject ProduktService _productService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">TestEHandel</a>
+        <NavLink class="nav-link" href="/kundvagn">
+            <span class="p-2">
+
+                <i class="bg-info bi-cart ">@TotalAntalProdukter </i>
+
+
+            </span>
+
+
+
+        </NavLink>
+
+
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="counter">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="weather">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/produkt">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Produkt
+            </NavLink>
+        </div>
+
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+
+    private ShoppingDto shoppingCart;
+
+
+
+    protected override void OnInitialized()
+    {
+        _productService.Onchange += StateHasChanged;
+    }
+
+
+
+    public void Dispose()
+    {
+
+        _cartService.OnChange -= StateHasChanged;
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+
+
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdString = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+
+
+
+        if (Guid.TryParse(userIdString, out var userId))
+        {
+            shoppingCart = await _cartService.GetCart(userId); // Skicka UserId som parameter
+
+
+            TotalAntalProdukter = GetCartCount();
+
+           //TEsting
+            
+        }
+        else
+        {
+
+
+            shoppingCart = new ShoppingDto(); // Returnera en tom DTO om UserId inte är giltigt
+        }
+
+
+
+
+
+
+
+    }
+
+
+
+    private void UpdateCart()
+    {
+        TotalAntalProdukter = GetCartCount();
+        InvokeAsync(StateHasChanged);
+
+    }
+
+
+
+
+    private int TotalAntalProdukter { get; set; }
+
+
+
+    private int GetCartCount()
+    {
+
+        var totalAntalProdukter = shoppingCart.Items.Sum(item => item.Quantity);
+
+        
+        return totalAntalProdukter;
+
+    }
+
+
+
+
+
+
+
+}

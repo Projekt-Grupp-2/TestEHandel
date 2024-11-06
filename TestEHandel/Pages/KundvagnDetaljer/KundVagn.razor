@@ -1,0 +1,197 @@
+﻿@page "/kundvagn"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using TestEHandel.Helper
+@inject CartService _cartService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ProduktService _produktService
+@inject IJSRuntime _js
+
+
+
+<h3>KundVagn</h3>
+
+
+
+@if (shoppingCart == null)
+{
+    <p>Laddar kundvagn...</p>
+}
+else if (shoppingCart.Items.Count == 0)
+{
+    <p>Din kundvagn är tom.</p>
+}
+else
+{
+    <ul>
+        @foreach (var item in shoppingCart.Items)
+        {
+
+
+            <div class="card container mt-4">
+
+
+
+                <div class="col-12 col-md-6">
+                    <h1 class="text-primary">@ProductTitles[item.ProductId]</h1>
+                </div>
+
+
+
+               
+
+                <div class="col-12 col-md-6">
+                    <h1 class="text-primary">@item.Quantity</h1>
+                </div>
+
+
+                <button class="plus-knapp" @onclick="() => IncrementProduct(item.ProductId)">+</button>
+
+                <button class="minus-knapp" @onclick="() => DecrementProduct(item.ProductId)">-</button>
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+        }
+    </ul>
+
+
+
+
+
+
+}
+
+
+
+<div class="card-footer">
+    <div class="row">
+        <div class="col-12 col-md-6 pb-1">
+            <a class="btn btn-success form-control " href="/produkt">Fortsätt Handla</a>
+        </div>
+    </div>
+</div>
+
+
+
+@code {
+    private ShoppingDto shoppingCart;
+
+    private IEnumerable<ProduktDTO> Products { get; set; }
+
+
+    private Dictionary<Guid, string> ProductTitles { get; set; } = new Dictionary<Guid, string>();
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdString = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+
+        Products = await _produktService.GetAll();
+
+        if (Guid.TryParse(userIdString, out var userId))
+        {
+            shoppingCart = await _cartService.GetCart(userId); // Skicka UserId som parameter
+        }
+        else
+        {
+            shoppingCart = new ShoppingDto(); // Returnera en tom DTO om UserId inte är giltigt
+        }
+
+
+
+        foreach (var item in shoppingCart.Items)
+        {
+            var product = Products.FirstOrDefault(p => p.ProductId == item.ProductId);
+            ProductTitles[item.ProductId] = product?.ProductTitle ?? "Titel saknas";
+        }
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    private async Task IncrementProduct(Guid productId)
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdString = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        {
+            Console.WriteLine("Kunde inte hitta eller omvandla UserId.");
+            return;
+        }
+
+
+
+        var result = await _produktService.BuyProduct(productId, userId);
+        if (result != null)
+        {
+            //Console.WriteLine("Produkten lades till i kundvagnen.");
+            await _js.ToastrSuccess("Produkten lades till i kundvagnen");
+        }
+        else
+        {
+            Console.WriteLine("Köpet misslyckades.");
+        }
+    }
+
+
+
+
+
+
+
+
+
+    private async Task DecrementProduct(Guid ProductId)
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdString = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        {
+            Console.WriteLine("Kunde inte hitta eller omvandla UserId.");
+            return;
+        }
+
+
+
+        var result = await _cartService.DecrementCart(ProductId, userId);
+        if (result != null)
+        {
+            //Console.WriteLine("Produkten lades till i kundvagnen.");
+            await _js.ToastrSuccess("Produkten Har tagits borts");
+        }
+        else
+        {
+            Console.WriteLine("Borttagning misslyckades.");
+        }
+    }
+
+
+}

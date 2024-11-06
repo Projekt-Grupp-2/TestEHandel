@@ -1,0 +1,74 @@
+﻿@page "/produkt"
+@using TestEHandel.Models
+@using TestEHandel.Service
+@inject ProduktService _produktService
+
+<h3>ProduktSida</h3>
+
+
+<div class="container">
+    @foreach (var produkt in Products)
+    {
+        
+
+        <div class="col-lg-4 col-md-6 pb-4 filter">
+            <div class="card bg-white rounded shadow-sm" style="border:1px solid #222">
+                <div class="card-body pb-1 row">
+                    <div class="col-8 h5">@produkt.ProductTitle</div>
+                    <div class="col-4 text-end">
+                        
+                    </div>
+                </div>
+
+                
+                <div class="card-body p-1 px-3 row">
+                   
+                    <div class="col-6 border-0">
+                        
+                    </div>
+                    <div class="col-12 pt-2" style="font-size:13px; text-align:justify">
+                        <p>@((MarkupString)produkt.Description)</p>
+                    </div>
+                    <div class="col-12 p-1">
+                        <a href="/details/@produkt.ProductId" class="btn btn-dark form-control btn-sm p-2" style="height:40px">View Details</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+    }
+
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+@code {
+
+    public IEnumerable<ProduktDTO> Products { get; set; } = new List<ProduktDTO>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        Products = await _produktService.GetAll();
+
+
+
+    }
+
+
+
+}

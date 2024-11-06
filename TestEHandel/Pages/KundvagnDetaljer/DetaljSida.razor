@@ -1,0 +1,148 @@
+﻿@page "/details/{ProductId:guid}"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using TestEHandel.Helper
+@inject ProduktService _productService
+@inject CartService CartService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime _js
+
+
+<h3>DetaljSida</h3>
+
+
+<div class="card container mt-4">
+
+
+
+    <div class="col-12 col-md-6">
+        <h1 class="text-primary">@Product.ProductId</h1>
+    </div>
+
+
+
+    <div class="col-12 col-md-6">
+        <h1 class="text-primary">@Product.ProductTitle</h1>
+    </div>
+
+    <div class="col-12 col-md-6">
+        <h1 class="text-primary">@Product.Description</h1>
+    </div>
+
+
+    <button @onclick="HandleBuyProduct">Köp Produkt</button>
+
+
+    <button class="plus-knapp" @onclick="HandleBuyProduct">+</button>
+
+    <button class="minus-knapp" @onclick="DecrementProduct">-</button>
+
+
+
+
+</div>
+
+ <div class="card-footer">
+                    <div class="row">
+                        <div class="col-12 col-md-6 pb-1">
+                            <a class="btn btn-success form-control " href="/produkt">Fortsätt Handla</a>
+                        </div>
+                        </div>
+                        </div>
+
+
+
+
+
+
+@code {
+    [Parameter]
+    public Guid ProductId { get; set; }
+
+
+
+    public ProduktDTO Product { get; set; } = new();
+
+    private int ProductQuantity; //DEcrease
+
+    protected override async Task OnInitializedAsync()
+    {
+
+
+
+
+
+        Product = await _productService.Get(ProductId);
+
+
+
+    }
+
+
+
+
+
+
+    private async Task HandleBuyProduct()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdString = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        {
+            Console.WriteLine("Kunde inte hitta eller omvandla UserId.");
+            return;
+        }
+
+
+
+        var result = await _productService.BuyProduct(ProductId, userId);
+        if (result != null)  
+        {
+            //Console.WriteLine("Produkten lades till i kundvagnen.");
+            await _js.ToastrSuccess("Produkten lades till i kundvagnen");
+        }
+        else
+        {
+            Console.WriteLine("Köpet misslyckades.");
+        }
+    }
+
+
+
+
+    private async Task DecrementProduct()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdString = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        {
+            Console.WriteLine("Kunde inte hitta eller omvandla UserId.");
+            return;
+        }
+
+
+
+        var result = await CartService.DecrementCart(ProductId, userId);
+        if (result != null)
+        {
+            //Console.WriteLine("Produkten lades till i kundvagnen.");
+            await _js.ToastrSuccess("Produkten Har tagits borts");
+        }
+        else
+        {
+            Console.WriteLine("Borttagning misslyckades.");
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+}
